@@ -82,19 +82,25 @@ let defaults = {
 
 Accepts a default object as shown above and merges them with the initial defaults.
 
-## createValidation(defaultMsg: string, messageTransformFunctions: Array<Function>)(invalidFunc: Function)
+
+# Validation
+
+## createValidation(defaultMsg: string | (defaults) => defaults.message.\<message_name>, messageTransformFunctions?: Array<Function>)(invalidFunc: Function)
 > Returns a validation rule
 
 The default way to create new validation rules - also used internally to create the rules.
 Use this if you want to create standard rules for the use everywhere in your application.
+
+The defaultMsg is usually a selector function which takes as first and only argument the defaults object. Use this to select one of the default messages in the default object.
+
+Optionally you can pass a specific message transform function or an array of message transform functions which should be used instead of the default message transforms.
 
 ```
 /**
  * Constraints the length of a property (string) to a specific length
  */
 const length = createValidation(
-    defaults.messages.length,
-    defaults.messageTransforms,
+    (defaults) => defaults.messages.length,
 )((input, object, opts) => 
     input && input.length && input.length < opts.length);
 ```

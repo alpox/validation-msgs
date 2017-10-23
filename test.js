@@ -8,7 +8,7 @@ let {
     withValidation,
     createValidation,
     isValid,
-    defaults,
+    setDefaults,
 } = require("./index");
 
 describe("validate", () => {
@@ -157,10 +157,9 @@ describe("isvalid", () => {
 
 describe("new validations", () => {
     it("can be created", () => {
-        const isNum = createValidation(
-            "has to be a num",
-            defaults.messageTransforms,
-        )(input => input && (isNaN(input) || typeof input !== "number"));
+        const isNum = createValidation("has to be a num")(
+            input => input && (isNaN(input) || typeof input !== "number"),
+        );
 
         const valid = validate({
             age: v(isNum()),
@@ -189,5 +188,41 @@ describe("withValidation", () => {
         expect(validated.age[0]).toBe("This field is required!");
         expect(isValid(validated2)).toBe(true);
         expect(validated2.age).toBeUndefined();
+    });
+});
+
+describe("setDefaults", () => {
+    it("properly sets future default messages", () => {
+        setDefaults({
+            messages: {
+                isRequired: "i require you to show up!",
+            },
+        });
+
+        const valid = validate({
+            username: v(isRequired()),
+            password: v(length({ length: 5 })),
+        });
+
+        const validated = valid({ password: "hio" });
+
+        expect(validated.username[0]).toBe("i require you to show up!");
+        expect(validated.password[0]).toBe(
+            "has to be at least 5 characters long",
+        );
+    });
+
+    it("properly sets message transforms", () => {
+        setDefaults({
+            messageTransforms: [(input, opts) => "Gotcha"],
+        });
+
+        const valid = validate({
+            username: v(isRequired()),
+        });
+
+        const validated = valid({});
+
+        expect(validated.username[0]).toBe("Gotcha");
     });
 });

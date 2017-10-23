@@ -1,7 +1,7 @@
 /**
  * Default options
  */
-let defaults = {
+const defaults = {
     messageTransforms: [
         (input, opts) =>
             input.replace(/\{\{(\w+)\}\}/, (m, match) => opts[match]),
@@ -23,7 +23,8 @@ let defaults = {
  * @param {Defaults} opts Default options
  */
 function setDefaults(opts) {
-    defaults.messageTransforms = opts.messageTransforms;
+    if (opts.messageTransforms)
+        defaults.messageTransforms = opts.messageTransforms;
     defaults.messages = Object.assign({}, defaults.messages, opts.messages);
 }
 
@@ -57,18 +58,11 @@ const transformMessage = transformer => (input, opts) => {
 };
 
 /**
- * A curried function with the signature
- *     ( defaultMessage: string, transforms?: MessageTransformer ) => 
- *         <T>(isInvalid: (toValidate: T, validationOptions?: any) => boolean) => 
- *         (options?: any) => 
- *         ValidationFunction<T>
- * 
- * It can be used to define custom validation functions:
+ * Can be used to define custom validation functions:
  * 
  * @example
  *     export const validateLength = createValidation(
- *       defaults.messages.length,
- *       defaults.messageTransforms,
+ *       opts => opts.messages.length,
  *    )(
  *        (input: string, opts: { length: number }) =>
  *           input && input.length && input.length < opts.length,
@@ -79,13 +73,20 @@ const createValidation = (
     transforms,
 ) => isInvalid => options => (input, object) => {
     let message = defaultMessage;
+    let messageTransforms = defaults.messageTransforms;
+
+    if (transforms) messageTransforms = transforms;
+
+    if (typeof defaultMessage === "function")
+        message = defaultMessage(defaults);
 
     if (typeof options === "string") message = options;
     else if (options && options.message) message = options.message;
 
     if (!isInvalid(input, object, options)) return undefined;
 
-    if (transforms) message = transformMessage(transforms)(message, options);
+    if (messageTransforms)
+        message = transformMessage(messageTransforms)(message, options);
 
     return message;
 };
@@ -104,10 +105,7 @@ const createValidation = (
  *      )
  *     })
  */
-const withValidation = createValidation(
-    "This field is invalid!",
-    defaults.messageTransforms,
-);
+const withValidation = createValidation("This field is invalid!");
 
 /**
  * A function which takes validation functions
@@ -224,25 +222,23 @@ const isValid = function(validationResult) {
 /**
  * Defines a property as required
  */
-const isRequired = createValidation(
-    defaults.messages.isRequired,
-    defaults.messageTransforms,
-)(input => !input);
+const isRequired = createValidation(opts => opts.messages.isRequired)(
+    input => !input,
+);
 
 /**
  * Constraints the length of a property (string) to a specific length
  */
-const length = createValidation(
-    defaults.messages.length,
-    defaults.messageTransforms,
-)((input, object, opts) => input && input.length && input.length < opts.length);
+const length = createValidation(opts => opts.messages.length)(
+    (input, object, opts) =>
+        input && input.length && input.length < opts.length,
+);
 
 /**
  * Constraints the password to a certain complexity
  */
 const passwordComplexity = createValidation(
-    defaults.messages.passwordComplexity,
-    defaults.messageTransforms,
+    opts => opts.messages.passwordComplexity,
 )(
     (input, object, opts) =>
         input && !(opts && opts.regex ? opts.regex : /[^a-z]/).test(input),
@@ -252,18 +248,14 @@ const passwordComplexity = createValidation(
  * Makes the input field to have to match the input
  * of another input field
  */
-const match = createValidation(
-    defaults.messages.match,
-    defaults.messageTransforms,
-)((input, object, opts) => input && object[opts.field] !== input);
+const match = createValidation(opts => opts.messages.match)(
+    (input, object, opts) => input && object[opts.field] !== input,
+);
 
 /**
  * Constraints a string to require a proper email format
  */
-const email = createValidation(
-    defaults.messages.email,
-    defaults.messageTransforms,
-)(
+const email = createValidation(opts => opts.messages.email)(
     input =>
         input &&
         !/^(([^<>()\[\]\\.,;:\s@"]+(\.[^<>()\[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/.test(
@@ -274,10 +266,9 @@ const email = createValidation(
 /**
  * Contraints an input to be a string
  */
-const isNumber = createValidation(
-    defaults.messages.isNumber,
-    defaults.messageTransforms,
-)(input => input && (isNaN(input) || typeof input !== "number"));
+const isNumber = createValidation(opts => opts.messages.isNumber)(
+    input => input && (isNaN(input) || typeof input !== "number"),
+);
 
 // Export functions
 module.exports = {
@@ -292,5 +283,5 @@ module.exports = {
     email,
     isNumber,
     isValid,
-    defaults,
+    setDefaults,
 };

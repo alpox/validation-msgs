@@ -4,13 +4,16 @@
     "description": "A functional validation library",
     "main": "index.js",
     "scripts": {
-        "test": "jest"
+        "test": "jest -t"
     },
     "repository": {
         "type": "git",
         "url": "git+https://github.com/alpox/validation-msgs.git"
     },
-    "keywords": ["validation", "form"],
+    "keywords": [
+        "validation",
+        "form"
+    ],
     "author": "Elias Bernhaut",
     "license": "MIT",
     "bugs": {
