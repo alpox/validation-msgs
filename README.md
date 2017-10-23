@@ -78,6 +78,10 @@ let defaults = {
 };
 ```
 
+## setDefaults(defaults)
+
+Accepts a default object as shown above and merges them with the initial defaults.
+
 ## createValidation(defaultMsg: string, messageTransformFunctions: Array<Function>)(invalidFunc: Function)
 > Returns a validation rule
 

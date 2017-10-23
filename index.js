@@ -23,7 +23,8 @@ let defaults = {
  * @param {Defaults} opts Default options
  */
 function setDefaults(opts) {
-    Object.assign(defaults, opts);
+    defaults.messageTransforms = opts.messageTransforms;
+    defaults.messages = Object.assign({}, defaults.messages, opts.messages);
 }
 
 /**
