@@ -2,64 +2,63 @@
  * Default options
  */
 const defaults = {
-    messageTransforms: [
-        (input, opts) =>
-            input.replace(/\{\{(\w+)\}\}/, (m, match) => opts[match]),
-    ],
-    messages: {
-        isRequired: "is required",
-        length: "has to be at least {{length}} characters long",
-        passwordComplexity:
-            "has to contain at least one number or uppercase letter.",
-        email: "has to be a valid email address",
-        match: "has to match the password",
-        isNumber: "has to be a number",
-    },
+  messageTransforms: [
+    (input, opts) => input.replace(/\{\{(\w+)\}\}/, (m, match) => opts[match])
+  ],
+  messages: {
+    isRequired: "is required",
+    length: "has to be at least {{length}} characters long",
+    passwordComplexity:
+      "has to contain at least one number or uppercase letter.",
+    email: "has to be a valid email address",
+    match: "has to match the password",
+    isNumber: "has to be a number"
+  }
 };
 
 /**
  * Sets the default options for the library
- * 
+ *
  * @param {Defaults} opts Default options
  */
 function setDefaults(opts) {
-    if (opts.messageTransforms)
-        defaults.messageTransforms = opts.messageTransforms;
-    defaults.messages = Object.assign({}, defaults.messages, opts.messages);
+  if (opts.messageTransforms)
+    defaults.messageTransforms = opts.messageTransforms;
+  defaults.messages = Object.assign({}, defaults.messages, opts.messages);
 }
 
 /**
  * Composes multiple functions from right to left.
- * 
- * @param {} funcs 
+ *
+ * @param {} funcs
  */
 function compose(...funcs) {
-    if (funcs.length === 0) {
-        return arg => arg;
-    }
+  if (funcs.length === 0) {
+    return arg => arg;
+  }
 
-    if (funcs.length === 1) {
-        return funcs[0];
-    }
+  if (funcs.length === 1) {
+    return funcs[0];
+  }
 
-    return funcs.reduce((a, b) => (...args) => a(b(...args)));
+  return funcs.reduce((a, b) => (...args) => a(b(...args)));
 }
 
 /**
  * Transforms messages with one or more transformer functions
- * 
- * @param {MessageTransformer} transformer - 
+ *
+ * @param {MessageTransformer} transformer -
  *      A transformer function, or an array of transformer functions
  */
 const transformMessage = transformer => (input, opts) => {
-    if (Array.isArray(transformer)) return compose(...transformer)(input, opts);
+  if (Array.isArray(transformer)) return compose(...transformer)(input, opts);
 
-    return transformer(input, opts);
+  return transformer(input, opts);
 };
 
 /**
  * Can be used to define custom validation functions:
- * 
+ *
  * @example
  *     export const validateLength = createValidation(
  *       opts => opts.messages.length,
@@ -69,34 +68,33 @@ const transformMessage = transformer => (input, opts) => {
  *    );
  */
 const createValidation = (
-    defaultMessage,
-    transforms,
+  defaultMessage,
+  transforms
 ) => isInvalid => options => (input, object) => {
-    let message = defaultMessage;
-    let messageTransforms = defaults.messageTransforms;
+  let message = defaultMessage;
+  let messageTransforms = defaults.messageTransforms;
 
-    if (transforms) messageTransforms = transforms;
+  if (transforms) messageTransforms = transforms;
 
-    if (typeof defaultMessage === "function")
-        message = defaultMessage(defaults);
+  if (typeof defaultMessage === "function") message = defaultMessage(defaults);
 
-    if (typeof options === "string") message = options;
-    else if (options && options.message) message = options.message;
+  if (typeof options === "string") message = options;
+  else if (options && options.message) message = options.message;
 
-    if (!isInvalid(input, object, options)) return undefined;
+  if (!isInvalid(input, object, options)) return undefined;
 
-    if (messageTransforms)
-        message = transformMessage(messageTransforms)(message, options);
+  if (messageTransforms)
+    message = transformMessage(messageTransforms)(message, options);
 
-    return message;
+  return message;
 };
 
 /**
  * A curried function for defining a custom validation
  * It can be used to shortly define a new validation function
- * 
+ *
  * @example
- * 
+ *
  *     const validateForm = validate({
  *      username: v(
  *         withValidation(input => !input)(
@@ -111,9 +109,9 @@ const withValidation = createValidation("This field is invalid!");
  * A function which takes validation functions
  * as parameter which were previously created
  * by a call to createValidation or withValidation.
- * 
+ *
  * @example
- * 
+ *
  *    const validateForm = validate({
  *        username: v(isRequired()),
  *        password: v(
@@ -127,17 +125,17 @@ const withValidation = createValidation("This field is invalid!");
  *    });
  */
 const v = (...funcs) => (input, object) => {
-    const messages = funcs
-        .map(func => {
-            if (typeof func !== "function") {
-                console.error("A non-function was given to 'v'.");
-                return;
-            }
-            return func(input, object);
-        })
-        .filter(result => result);
+  const messages = funcs
+    .map(func => {
+      if (typeof func !== "function") {
+        console.error("A non-function was given to 'v'.");
+        return;
+      }
+      return func(input, object);
+    })
+    .filter(result => result);
 
-    return messages.length ? messages : undefined;
+  return messages.length ? messages : undefined;
 };
 
 /**
@@ -146,14 +144,14 @@ const v = (...funcs) => (input, object) => {
  * much like ramda's `evolve` function except
  * that it does not ignore properties which are
  * not defined on the object.
- * 
+ *
  * The returned object of the validation defines
  * only the properties which were invalid. The
- * associated value is an array of failure messages 
+ * associated value is an array of failure messages
  * (strings)
- * 
+ *
  * @example
- * 
+ *
  *    const validateForm = validate({
  *        username: v(isRequired()),
  *        password: v(
@@ -164,84 +162,96 @@ const v = (...funcs) => (input, object) => {
  *        ),
  *        email: v(isRequired(), email()),
  *    });
- * 
+ *
  *     const validated = validateForm({
  *         username: "foo",
  *         password: "",
  *         email: "anymail"
  *     });
- *     
+ *
  *     console.log(validated);
  *     // Output: {
  *     //     password: [<required failure msg>, <length failure msg>],
  *     //     email: [<mail format failure msg>]
  *     // }
- * 
+ *
  * @param {Validator<X extends T & object>} - The property validation object
  * @param {T extends { [ key: string ]: any }} - (curried) The object to validate
  * @returns {Validated<T>} - The final validation response
  */
 const validate = function(transformations) {
-    return object => {
-        const result = {};
+  return object => {
+    const result = {};
 
-        for (const key in transformations) {
-            const transformation = transformations[key];
-            result[key] =
-                typeof transformation === "function"
-                    ? transformation(object && object[key], object)
-                    : transformation && typeof transformation === "object"
-                      ? validate(transformation, object && object[key], object)
-                      : object[key];
-        }
+    for (const key in transformations) {
+      const transformation = transformations[key];
+      result[key] =
+        typeof transformation === "function"
+          ? transformation(object && object[key], object)
+          : transformation && typeof transformation === "object"
+            ? validate(transformation, object && object[key], object)
+            : object[key];
+    }
 
-        Object.keys(result).forEach(key => {
-            if (!result[key]) delete result[key];
-        });
+    Object.keys(result).forEach(key => {
+      if (!result[key]) delete result[key];
+    });
 
-        return result;
-    };
+    return result;
+  };
+};
+
+/**
+ * Transforms a simple validation function to
+ * a validation-msgs compatible validator function
+ */
+const transformValidator = function(name, validator) {
+  return createValidation(opts => opts.messages[name])(
+    (input, object, opts) =>
+      opts && opts.nativeParams
+        ? !validator(input, ...opts.nativeParams)
+        : !validator(input, opts)
+  );
 };
 
 /**
  * Tests the result of a previous validation
  * and returns true if the validated object is
  * valid and false otherwise.
- * 
+ *
  * @example
- * 
+ *
  * const validateUser = validate({ ... });
  * const validationResult = validateUser({ name: "bob" });
  * console.log(isValid(validationResult));
  * @param {object} validationResult The result of the validation
  */
 const isValid = function(validationResult) {
-    return !Object.keys(validationResult).length;
+  return !Object.keys(validationResult).length;
 };
 
 /**
  * Defines a property as required
  */
 const isRequired = createValidation(opts => opts.messages.isRequired)(
-    input => !input,
+  input => !input
 );
 
 /**
  * Constraints the length of a property (string) to a specific length
  */
 const length = createValidation(opts => opts.messages.length)(
-    (input, object, opts) =>
-        input && input.length && input.length < opts.length,
+  (input, object, opts) => input && input.length && input.length < opts.length
 );
 
 /**
  * Constraints the password to a certain complexity
  */
 const passwordComplexity = createValidation(
-    opts => opts.messages.passwordComplexity,
+  opts => opts.messages.passwordComplexity
 )(
-    (input, object, opts) =>
-        input && !(opts && opts.regex ? opts.regex : /[^a-z]/).test(input),
+  (input, object, opts) =>
+    input && !(opts && opts.regex ? opts.regex : /[^a-z]/).test(input)
 );
 
 /**
@@ -249,39 +259,40 @@ const passwordComplexity = createValidation(
  * of another input field
  */
 const match = createValidation(opts => opts.messages.match)(
-    (input, object, opts) => input && object[opts.field] !== input,
+  (input, object, opts) => input && object[opts.field] !== input
 );
 
 /**
  * Constraints a string to require a proper email format
  */
 const email = createValidation(opts => opts.messages.email)(
-    input =>
-        input &&
-        !/^(([^<>()\[\]\\.,;:\s@"]+(\.[^<>()\[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/.test(
-            input,
-        ),
+  input =>
+    input &&
+    !/^(([^<>()\[\]\\.,;:\s@"]+(\.[^<>()\[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/.test(
+      input
+    )
 );
 
 /**
  * Contraints an input to be a string
  */
 const isNumber = createValidation(opts => opts.messages.isNumber)(
-    input => input && (isNaN(input) || typeof input !== "number"),
+  input => input && (isNaN(input) || typeof input !== "number")
 );
 
 // Export functions
 module.exports = {
-    v,
-    validate,
-    createValidation,
-    withValidation,
-    isRequired,
-    length,
-    passwordComplexity,
-    match,
-    email,
-    isNumber,
-    isValid,
-    setDefaults,
+  v,
+  validate,
+  createValidation,
+  withValidation,
+  isRequired,
+  length,
+  passwordComplexity,
+  match,
+  email,
+  isNumber,
+  isValid,
+  setDefaults,
+  transformValidator
 };
