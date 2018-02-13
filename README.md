@@ -88,9 +88,7 @@ defaults.
 
 # Validation
 
-## createValidation(defaultMsg: string | (defaults) => defaults.message.\<message_name>, messageTransformFunctions?: Array
-
-<Function>)(invalidFunc: Function)
+## createValidation(defaultMsg: string | (defaults) => defaults.message.\<message_name>, messageTransformFunctions?: Array<Function>)(invalidFunc: Function)
 
 > Returns a validation rule
 
